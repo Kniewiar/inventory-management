@@ -106,14 +106,14 @@ export default {
   border-bottom: 1px solid #e2e8f0;
   padding: 0.75rem 0;
   position: sticky;
-  top: 70px;
+  top: var(--topbar-height);
   z-index: 90;
 }
 
 .filters-container {
-  max-width: 1600px;
+  max-width: var(--content-max-width);
   margin: 0 auto;
-  padding: 0 2rem;
+  padding: 0 var(--space-8);
   display: flex;
   align-items: center;
   gap: 1rem;
@@ -124,6 +124,12 @@ export default {
   align-items: center;
   gap: 1rem;
   flex: 1;
+}
+
+@media (max-width: 767px) {
+  .filters-container { padding: 0 var(--space-4); }
+  .filters-grid { flex-wrap: wrap; }
+  .filter-select { min-width: 0; }
 }
 
 .filter-group {

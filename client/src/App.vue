@@ -1,7 +1,12 @@
 <template>
   <div class="app">
-    <div class="app-layout">
-      <AppSidebar :open="sidebarOpen" @navigate="sidebarOpen = false" />
+    <div class="app-layout" :class="{ 'is-collapsed': sidebarCollapsed }">
+      <AppSidebar
+        :open="sidebarOpen"
+        :collapsed="sidebarCollapsed"
+        @navigate="sidebarOpen = false"
+        @toggle-collapse="toggleSidebarCollapse"
+      />
       <div
         v-if="sidebarOpen"
         class="sidebar-backdrop"
@@ -52,7 +57,7 @@
 </template>
 
 <script>
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { api } from './api'
 import { useAuth } from './composables/useAuth'
@@ -82,6 +87,50 @@ export default {
     const apiTasks = ref([])
     const route = useRoute()
     const sidebarOpen = ref(false)
+
+    // Desktop/tablet icon-rail state. localStorage can throw (private mode, blocked
+    // storage), so every access is wrapped. The saved preference ("true"/"false") wins;
+    // with no preference the rail defaults to collapsed at <=1023px and expanded above.
+    const COLLAPSE_KEY = 'sidebar-collapsed'
+    const readSavedCollapsed = () => {
+      try {
+        const saved = localStorage.getItem(COLLAPSE_KEY)
+        if (saved === 'true') return true
+        if (saved === 'false') return false
+      } catch (err) {
+        // ignore: fall back to viewport default
+      }
+      return null
+    }
+    const saveCollapsed = (value) => {
+      try {
+        localStorage.setItem(COLLAPSE_KEY, String(value))
+      } catch (err) {
+        // ignore: preference just will not persist
+      }
+    }
+
+    const narrowQuery = typeof window !== 'undefined' && window.matchMedia
+      ? window.matchMedia('(max-width: 1023px)')
+      : null
+    // Narrow screens always start as a rail (same as onNarrowChange); wide screens use the saved choice
+    const sidebarCollapsed = ref(narrowQuery && narrowQuery.matches ? true : (readSavedCollapsed() ?? false))
+
+    // Entering <=1023px forces the rail (without overwriting the saved preference);
+    // leaving it restores the saved preference, or expanded if none was saved.
+    const onNarrowChange = (e) => {
+      sidebarCollapsed.value = e.matches ? true : (readSavedCollapsed() ?? false)
+    }
+    if (narrowQuery) narrowQuery.addEventListener('change', onNarrowChange)
+    onUnmounted(() => {
+      if (narrowQuery) narrowQuery.removeEventListener('change', onNarrowChange)
+    })
+
+    const toggleSidebarCollapse = () => {
+      sidebarCollapsed.value = !sidebarCollapsed.value
+      // Only remember the desktop choice, so expanding on a tablet doesn't change the desktop default
+      if (!(narrowQuery && narrowQuery.matches)) saveCollapsed(sidebarCollapsed.value)
+    }
 
     // Close the mobile sidebar overlay whenever the route changes
     watch(() => route.path, () => {
@@ -171,6 +220,8 @@ export default {
     return {
       t,
       sidebarOpen,
+      sidebarCollapsed,
+      toggleSidebarCollapse,
       pageTitle,
       showProfileDetails,
       showTasks,
@@ -325,9 +376,19 @@ body {
   display: none;
 }
 
-@media (min-width: 768px) and (max-width: 1023px) {
+/* Icon rail is state-driven; below 768px the sidebar is an overlay so it has no effect */
+@media (min-width: 768px) {
   .app-layout {
+    transition: grid-template-columns 0.15s ease;
+  }
+  .app-layout.is-collapsed {
     grid-template-columns: var(--sidebar-width-collapsed) minmax(0, 1fr);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-layout {
+    transition: none;
   }
 }
 

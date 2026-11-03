@@ -48,6 +48,18 @@
         <span class="nav-label">Reports</span>
       </router-link>
     </nav>
+    <button
+      type="button"
+      class="collapse-toggle"
+      :aria-expanded="String(!collapsed)"
+      :aria-label="collapsed ? t('nav.expandSidebar') : t('nav.collapseSidebar')"
+      :title="collapsed ? t('nav.expandSidebar') : t('nav.collapseSidebar')"
+      @click="$emit('toggle-collapse')"
+    >
+      <svg class="nav-icon collapse-icon" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M15 6l-6 6 6 6" />
+      </svg>
+    </button>
   </aside>
 </template>
 
@@ -60,7 +72,7 @@ export default {
     collapsed: { type: Boolean, default: false },
     open: { type: Boolean, default: false }
   },
-  emits: ['navigate'],
+  emits: ['navigate', 'toggle-collapse'],
   setup() {
     const { t } = useI18n()
     return { t }
@@ -80,6 +92,7 @@ export default {
   flex-direction: column;
   overflow-y: auto;
   overflow-x: hidden;
+  transition: width 0.15s ease;
 }
 
 .brand {
@@ -111,6 +124,7 @@ export default {
   flex-direction: column;
   gap: var(--space-1);
   padding: var(--space-4) var(--space-3);
+  flex: 1;
 }
 
 .nav-link {
@@ -171,20 +185,42 @@ export default {
 .is-collapsed .brand-name { font-size: var(--text-sm); }
 .is-collapsed .nav-link { justify-content: center; padding: 0; }
 
-@media (min-width: 768px) and (max-width: 1023px) {
-  .app-sidebar { width: var(--sidebar-width-collapsed); }
-  .brand { align-items: center; padding: 0 var(--space-2); }
-  .brand-subtitle,
-  .nav-label {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip: rect(0 0 0 0);
-    white-space: nowrap;
-  }
-  .brand-name { font-size: var(--text-sm); }
-  .nav-link { justify-content: center; padding: 0; }
+/* Bottom toggle: same hover/focus treatment as nav links */
+.collapse-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-shrink: 0;
+  height: 40px;
+  margin: var(--space-3);
+  padding: 0 var(--space-3);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-sm);
+  color: var(--sidebar-text);
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.collapse-toggle:hover {
+  background: #f1f5f9;
+  color: var(--color-text);
+}
+
+.collapse-toggle:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.collapse-icon { transition: transform 0.15s ease; }
+.is-collapsed .collapse-toggle { justify-content: center; padding: 0; }
+.is-collapsed .collapse-icon { transform: rotate(180deg); }
+
+@media (prefers-reduced-motion: reduce) {
+  .app-sidebar,
+  .collapse-icon,
+  .nav-link,
+  .collapse-toggle { transition: none; }
 }
 
 /* Phones: off-canvas overlay, above dropdowns (1000) and below modals (2000) */
@@ -216,5 +252,6 @@ export default {
   }
   .is-collapsed .brand-name { font-size: var(--text-lg); }
   .is-collapsed .nav-link { justify-content: flex-start; padding: 0 var(--space-3); }
+  .collapse-toggle { display: none; }
 }
 </style>
